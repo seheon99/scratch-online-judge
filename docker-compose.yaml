@@ -1,0 +1,48 @@
+services:
+  rabbitmq:
+    image: rabbitmq
+
+  database:
+    image: postgres
+    environment:
+      POSTGRES_DB: soj
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: adpw
+
+  frontend:
+    build: ./frontend
+    environment:
+      HTTPS: true
+      SSL_CRT_FILE: /etc/ssl/certs/fullchain.pem
+      SSL_KEY_FILE: /etc/ssl/private/privkey.pem
+      WDS_SOCKET_PORT: 443
+    ports:
+      - "3000:3000"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./certs/fullchain.pem:/etc/ssl/certs/fullchain.pem:ro
+      - ./certs/privkey.pem:/etc/ssl/private/privkey.pem:ro
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    environment:
+        CRT_FILEPATH: /etc/ssl/certs/fullchain.pem
+        KEY_FILEPATH: /etc/ssl/private/privkey.pem
+        P12_PASSWORD: ${P12_PASSWORD}
+    ports:
+      - "3500:3000"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./certs/fullchain.pem:/etc/ssl/certs/fullchain.pem:ro
+      - ./certs/privkey.pem:/etc/ssl/private/privkey.pem:ro
+      - uploads:/var/www/uploads
+      - ./backend:/app
+    depends_on:
+      - rabbitmq
+      - database
+
+volumes:
+  uploads:
